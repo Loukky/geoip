@@ -45,6 +45,17 @@ jobs:
           curl -sSL https://api.fastly.com/public-ip-list | jq --raw-output '.addresses[],.ipv6_addresses[]' >> data/fastly
           curl -sSL https://ip-ranges.amazonaws.com/ip-ranges.json | jq --raw-output '.prefixes[],.ipv6_prefixes[] | select(.service == "CLOUDFRONT") | .ip_prefix,.ipv6_prefix' | grep "/" >> data/cloudfront
 
+- name: Build geoip files
+        run: |
+          go run ./
+      - name: Verify mmdb files
+        run: |
+          cd ./output/maxmind || exit 1
+          go install -v github.com/maxmind/mmdbverify@latest
+          for name in $(ls *.mmdb); do
+            $(go env GOPATH)/bin/mmdbverify -file ${name}
+          done
+          
       - name: Generate sha256 checksum for dat files
         run: |
           cd ./output/dat || exit 1
