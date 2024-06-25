@@ -157,6 +157,10 @@
       }
     },
     {
+      "type": "singboxSRS",
+      "action": "output"
+    },
+    {
       "type": "text",
       "action": "output"
     }
