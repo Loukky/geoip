@@ -1,12 +1,13 @@
 module github.com/Loyalsoldier/geoip
 
 go 1.22
+
 toolchain go1.22.5
 
 require (
 	github.com/maxmind/mmdbwriter v1.0.0
 	github.com/oschwald/maxminddb-golang v1.13.1
-	github.com/sagernet/sing-box v1.9.5
+	github.com/sagernet/sing-box v1.9.6
 	github.com/v2fly/v2ray-core/v5 v5.19.0
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba
 	google.golang.org/protobuf v1.34.2
