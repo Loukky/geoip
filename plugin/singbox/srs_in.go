@@ -3,36 +3,39 @@ package singbox
 import (
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
+	"log"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/Loyalsoldier/geoip/lib"
 	"github.com/sagernet/sing-box/common/srs"
+	"github.com/sagernet/sing-box/constant"
+	"github.com/sagernet/sing-box/option"
 )
 
 const (
-	typeSRSIn = "singboxSRS"
-	descSRSIn = "Convert sing-box SRS data to other formats"
+	typeSRSOut = "singboxSRS"
+	descSRSOut = "Convert data to sing-box SRS format"
+)
+
+var (
+	defaultOutputDir = filepath.Join("./", "output", "srs")
 )
 
 func init() {
-	lib.RegisterInputConfigCreator(typeSRSIn, func(action lib.Action, data json.RawMessage) (lib.InputConverter, error) {
-		return newSRSIn(action, data)
+	lib.RegisterOutputConfigCreator(typeSRSOut, func(action lib.Action, data json.RawMessage) (lib.OutputConverter, error) {
+		return newSRSOut(action, data)
 	})
-	lib.RegisterInputConverter(typeSRSIn, &srsIn{
-		Description: descSRSIn,
+	lib.RegisterOutputConverter(typeSRSOut, &srsOut{
+		Description: descSRSOut,
 	})
 }
 
-func newSRSIn(action lib.Action, data json.RawMessage) (lib.InputConverter, error) {
+func newSRSOut(action lib.Action, data json.RawMessage) (lib.OutputConverter, error) {
 	var tmp struct {
-		Name       string     `json:"name"`
-		URI        string     `json:"uri"`
-		InputDir   string     `json:"inputDir"`
+		OutputDir  string     `json:"outputDir"`
+		Want       []string   `json:"wantedList"`
 		OnlyIPType lib.IPType `json:"onlyIPType"`
 	}
 
@@ -42,191 +45,139 @@ func newSRSIn(action lib.Action, data json.RawMessage) (lib.InputConverter, erro
 		}
 	}
 
-	if tmp.Name == "" && tmp.URI == "" && tmp.InputDir == "" {
-		return nil, fmt.Errorf("type %s | action %s missing inputdir or name or uri", typeSRSIn, action)
+	if tmp.OutputDir == "" {
+		tmp.OutputDir = defaultOutputDir
 	}
 
-	if (tmp.Name != "" && tmp.URI == "") || (tmp.Name == "" && tmp.URI != "") {
-		return nil, fmt.Errorf("type %s | action %s name & uri must be specified together", typeSRSIn, action)
-	}
-
-	return &srsIn{
-		Type:        typeSRSIn,
+	return &srsOut{
+		Type:        typeSRSOut,
 		Action:      action,
-		Description: descSRSIn,
-		Name:        tmp.Name,
-		URI:         tmp.URI,
-		InputDir:    tmp.InputDir,
+		Description: descSRSOut,
+		OutputDir:   tmp.OutputDir,
+		Want:        tmp.Want,
 		OnlyIPType:  tmp.OnlyIPType,
 	}, nil
 }
 
-type srsIn struct {
+type srsOut struct {
 	Type        string
 	Action      lib.Action
 	Description string
-	Name        string
-	URI         string
-	InputDir    string
+	OutputDir   string
+	Want        []string
 	OnlyIPType  lib.IPType
 }
 
-func (s *srsIn) GetType() string {
+func (s *srsOut) GetType() string {
 	return s.Type
 }
 
-func (s *srsIn) GetAction() lib.Action {
+func (s *srsOut) GetAction() lib.Action {
 	return s.Action
 }
 
-func (s *srsIn) GetDescription() string {
+func (s *srsOut) GetDescription() string {
 	return s.Description
 }
 
-func (s *srsIn) Input(container lib.Container) (lib.Container, error) {
-	entries := make(map[string]*lib.Entry)
-	var err error
-
-	switch {
-	case s.InputDir != "":
-		err = s.walkDir(s.InputDir, entries)
-	case s.Name != "" && s.URI != "":
-		switch {
-		case strings.HasPrefix(s.URI, "http://"), strings.HasPrefix(s.URI, "https://"):
-			err = s.walkRemoteFile(s.URI, s.Name, entries)
-		default:
-			err = s.walkLocalFile(s.URI, s.Name, entries)
+func (s *srsOut) Output(container lib.Container) error {
+	// Filter want list
+	wantList := make(map[string]bool)
+	for _, want := range s.Want {
+		if want = strings.ToUpper(strings.TrimSpace(want)); want != "" {
+			wantList[want] = true
 		}
-	default:
-		return nil, fmt.Errorf("config missing argument inputDir or name or uri")
 	}
 
+	switch len(wantList) {
+	case 0:
+		for entry := range container.Loop() {
+			if err := s.run(entry); err != nil {
+				return err
+			}
+		}
+
+	default:
+		for name := range wantList {
+			entry, found := container.GetEntry(name)
+			if !found {
+				log.Printf("❌ entry %s not found", name)
+				continue
+			}
+
+			if err := s.run(entry); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (s *srsOut) run(entry *lib.Entry) error {
+	ruleset, err := s.generateRuleSet(entry)
+	if err != nil {
+		return err
+	}
+
+	filename := strings.ToLower(entry.GetName()) + ".srs"
+	if err := s.writeFile(filename, ruleset); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *srsOut) generateRuleSet(entry *lib.Entry) (*option.PlainRuleSet, error) {
+	var entryCidr []string
+	var err error
+	switch s.OnlyIPType {
+	case lib.IPv4:
+		entryCidr, err = entry.MarshalText(lib.IgnoreIPv6)
+	case lib.IPv6:
+		entryCidr, err = entry.MarshalText(lib.IgnoreIPv4)
+	default:
+		entryCidr, err = entry.MarshalText()
+	}
 	if err != nil {
 		return nil, err
 	}
 
-	var ignoreIPType lib.IgnoreIPOption
-	switch s.OnlyIPType {
-	case lib.IPv4:
-		ignoreIPType = lib.IgnoreIPv6
-	case lib.IPv6:
-		ignoreIPType = lib.IgnoreIPv4
+	var headlessRule option.DefaultHeadlessRule
+	headlessRule.IPCIDR = entryCidr
+
+	var plainRuleSet option.PlainRuleSet
+	plainRuleSet.Rules = []option.HeadlessRule{
+		{
+			Type:           constant.RuleTypeDefault,
+			DefaultOptions: headlessRule,
+		},
 	}
 
-	if len(entries) == 0 {
-		return nil, fmt.Errorf("type %s | action %s no entry are generated", s.Type, s.Action)
+	if len(headlessRule.IPCIDR) > 0 {
+		return &plainRuleSet, nil
 	}
 
-	for _, entry := range entries {
-		switch s.Action {
-		case lib.ActionAdd:
-			if err := container.Add(entry, ignoreIPType); err != nil {
-				return nil, err
-			}
-		case lib.ActionRemove:
-			container.Remove(entry.GetName(), ignoreIPType)
-		}
-	}
-
-	return container, nil
+	return nil, fmt.Errorf("entry %s has no CIDR", entry.GetName())
 }
 
-func (s *srsIn) walkDir(dir string, entries map[string]*lib.Entry) error {
-	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if info.IsDir() {
-			return nil
-		}
-
-		if err := s.walkLocalFile(path, "", entries); err != nil {
-			return err
-		}
-
-		return nil
-	})
-
-	return err
-}
-
-func (s *srsIn) walkLocalFile(path, name string, entries map[string]*lib.Entry) error {
-	name = strings.TrimSpace(name)
-	var filename string
-	if name != "" {
-		filename = name
-	} else {
-		filename = filepath.Base(path)
+func (s *srsOut) writeFile(filename string, ruleset *option.PlainRuleSet) error {
+	if err := os.MkdirAll(s.OutputDir, 0755); err != nil {
+		return err
 	}
 
-	// check filename
-	if !regexp.MustCompile(`^[a-zA-Z0-9_.\-]+$`).MatchString(filename) {
-		return fmt.Errorf("filename %s cannot be entry name, please remove special characters in it", filename)
-	}
-	dotIndex := strings.LastIndex(filename, ".")
-	if dotIndex > 0 {
-		filename = filename[:dotIndex]
-	}
-
-	file, err := os.Open(path)
+	f, err := os.Create(filepath.Join(s.OutputDir, filename))
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer f.Close()
 
-	if err := s.generateEntries(filename, file, entries); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (s *srsIn) walkRemoteFile(url, name string, entries map[string]*lib.Entry) error {
-	resp, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return fmt.Errorf("failed to get remote file %s, http status code %d", url, resp.StatusCode)
-	}
-
-	if err := s.generateEntries(name, resp.Body, entries); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (s *srsIn) generateEntries(name string, reader io.Reader, entries map[string]*lib.Entry) error {
-	entry := lib.NewEntry(name)
-	if theEntry, found := entries[entry.GetName()]; found {
-		fmt.Printf("⚠️ [type %s | action %s] found duplicated entry: %s. Process anyway\n", typeSRSIn, s.Action, name)
-		entry = theEntry
-	}
-
-	plainRuleSet, err := srs.Read(reader, true)
+	err = srs.Write(f, *ruleset)
 	if err != nil {
 		return err
 	}
 
-	for _, rule := range plainRuleSet.Rules {
-		for _, cidrStr := range rule.DefaultOptions.IPCIDR {
-			switch s.Action {
-			case lib.ActionAdd:
-				if err := entry.AddPrefix(cidrStr); err != nil {
-					return err
-				}
-			case lib.ActionRemove:
-				if err := entry.RemovePrefix(cidrStr); err != nil {
-					return err
-				}
-			}
-		}
-	}
-
-	entries[entry.GetName()] = entry
+	log.Printf("✅ [%s] %s --> %s", s.Type, filename, s.OutputDir)
 
 	return nil
 }
