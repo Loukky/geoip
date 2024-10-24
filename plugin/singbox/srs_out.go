@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 
 	"github.com/Loyalsoldier/geoip/lib"
@@ -37,7 +36,6 @@ func newSRSOut(action lib.Action, data json.RawMessage) (lib.OutputConverter, er
 	var tmp struct {
 		OutputDir  string     `json:"outputDir"`
 		Want       []string   `json:"wantedList"`
-		Exclude    []string   `json:"excludedList"`
 		OnlyIPType lib.IPType `json:"onlyIPType"`
 	}
 
@@ -57,7 +55,6 @@ func newSRSOut(action lib.Action, data json.RawMessage) (lib.OutputConverter, er
 		Description: descSRSOut,
 		OutputDir:   tmp.OutputDir,
 		Want:        tmp.Want,
-		Exclude:     tmp.Exclude,
 		OnlyIPType:  tmp.OnlyIPType,
 	}, nil
 }
@@ -68,7 +65,6 @@ type srsOut struct {
 	Description string
 	OutputDir   string
 	Want        []string
-	Exclude     []string
 	OnlyIPType  lib.IPType
 }
 
@@ -85,59 +81,41 @@ func (s *srsOut) GetDescription() string {
 }
 
 func (s *srsOut) Output(container lib.Container) error {
-	for _, name := range s.filterAndSortList(container) {
-		entry, found := container.GetEntry(name)
-		if !found {
-			log.Printf("❌ entry %s not found\n", name)
-			continue
+	// Filter want list
+	wantList := make(map[string]bool)
+	for _, want := range s.Want {
+		if want = strings.ToUpper(strings.TrimSpace(want)); want != "" {
+			wantList[want] = true
+		}
+	}
+
+	switch len(wantList) {
+	case 0:
+		for entry := range container.Loop() {
+			if err := s.run(entry); err != nil {
+				return err
+			}
 		}
 
-		if err := s.generate(entry); err != nil {
-			return err
+	default:
+		for name := range wantList {
+			entry, found := container.GetEntry(name)
+			if !found {
+				log.Printf("❌ entry %s not found", name)
+				continue
+			}
+
+			if err := s.run(entry); err != nil {
+				return err
+			}
 		}
 	}
 
 	return nil
 }
 
-func (s *srsOut) filterAndSortList(container lib.Container) []string {
-	excludeMap := make(map[string]bool)
-	for _, exclude := range s.Exclude {
-		if exclude = strings.ToUpper(strings.TrimSpace(exclude)); exclude != "" {
-			excludeMap[exclude] = true
-		}
-	}
-
-	wantList := make([]string, 0, len(s.Want))
-	for _, want := range s.Want {
-		if want = strings.ToUpper(strings.TrimSpace(want)); want != "" && !excludeMap[want] {
-			wantList = append(wantList, want)
-		}
-	}
-
-	if len(wantList) > 0 {
-		// Sort the list
-		slices.Sort(wantList)
-		return wantList
-	}
-
-	list := make([]string, 0, 300)
-	for entry := range container.Loop() {
-		name := entry.GetName()
-		if excludeMap[name] {
-			continue
-		}
-		list = append(list, name)
-	}
-
-	// Sort the list
-	slices.Sort(list)
-
-	return list
-}
-
-func (s *srsOut) generate(entry *lib.Entry) error {
-	ruleset, err := s.marshalRuleSet(entry)
+func (s *srsOut) run(entry *lib.Entry) error {
+	ruleset, err := s.generateRuleSet(entry)
 	if err != nil {
 		return err
 	}
@@ -150,7 +128,7 @@ func (s *srsOut) generate(entry *lib.Entry) error {
 	return nil
 }
 
-func (s *srsOut) marshalRuleSet(entry *lib.Entry) (*option.PlainRuleSet, error) {
+func (s *srsOut) generateRuleSet(entry *lib.Entry) (*option.PlainRuleSet, error) {
 	var entryCidr []string
 	var err error
 	switch s.OnlyIPType {
@@ -180,7 +158,7 @@ func (s *srsOut) marshalRuleSet(entry *lib.Entry) (*option.PlainRuleSet, error) 
 		return &plainRuleSet, nil
 	}
 
-	return nil, fmt.Errorf("❌ [type %s | action %s] entry %s has no CIDR", s.Type, s.Action, entry.GetName())
+	return nil, fmt.Errorf("entry %s has no CIDR", entry.GetName())
 }
 
 func (s *srsOut) writeFile(filename string, ruleset *option.PlainRuleSet) error {
