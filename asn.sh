@@ -28,8 +28,8 @@ while IFS= read -r line; do
   echo "Fetching ${asn}..."
 
   if ! curl -sL \
-    --connect-timeout 5 \
-    --max-time 20 \
+    --connect-timeout 2 \
+    --max-time 10 \
     --retry 3 \
     --retry-delay 2 \
     --retry-connrefused \
