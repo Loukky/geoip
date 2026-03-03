@@ -46,7 +46,7 @@ while IFS= read -r line; do
     continue
   fi
 
-  jq --raw-output '.data.prefixes.v4.originating[]?' "${response}" >>"${file}"
-  jq --raw-output '.data.prefixes.v6.originating[]?' "${response}" >>"${file}"
+  jq --raw-output '.data.prefixes.v4.originating[]?' "${response}" | sort -u >>"${file}"
+  jq --raw-output '.data.prefixes.v6.originating[]?' "${response}" | sort -u >>"${file}"
 done
 done <${input}
