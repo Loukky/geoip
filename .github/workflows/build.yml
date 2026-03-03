@@ -113,7 +113,7 @@ jobs:
           tag: ${{ env.TAG_NAME }}
           
       - name: Remove old Releases
-        uses: dev-drprasad/delete-older-releases@master
+        uses: dev-drprasad/delete-older-releases@main
         with:
           keep_latest: 3
           delete_tags: true
