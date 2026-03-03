@@ -111,3 +111,11 @@ jobs:
           file_glob: true
           file: ./publish/*
           tag: ${{ env.TAG_NAME }}
+          
+      - name: Remove old Releases
+        uses: dev-drprasad/delete-older-releases@master
+        with:
+          keep_latest: 3
+          delete_tags: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
