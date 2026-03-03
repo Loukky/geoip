@@ -5,7 +5,7 @@ on:
     - cron: "0 0 * * 4"
   push:
     branches:
-      - master
+      - main
     paths-ignore:
       - ".gitignore"
       - "config-example.json"
