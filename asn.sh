@@ -20,7 +20,7 @@ while IFS= read -r line; do
   #   jq --raw-output '.data.prefixes.v4.originating[]' ./tmp/${filename}-${asn}.txt | sort -u >>${file}
   #   jq --raw-output '.data.prefixes.v6.originating[]' ./tmp/${filename}-${asn}.txt | sort -u >>${file}
   # done
-  for asn in ${asns[@]}; do
+  for asn in "${asns[@]}"; do
   url="https://stat.ripe.net/data/ris-prefixes/data.json?list_prefixes=true&types=o&resource=${asn}"
   response="./tmp/${filename}-${asn}.txt"
 
