@@ -1,11 +1,8 @@
 name: Build geoip files
-
 on:
   workflow_dispatch:
-
   schedule:
     - cron: "0 0 * * 4"
-
   push:
     branches:
       - main
@@ -16,59 +13,12 @@ on:
       - "README.md"
       - ".github/dependabot.yml"
 
-  pull_request:
-    branches:
-      - main
-    paths-ignore:
-      - ".gitignore"
-      - "config-example.json"
-      - "LICENSE"
-      - "README.md"
-      - ".github/dependabot.yml"
-
-concurrency:
-  group: geoip-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
-  # =========================
-  # ✅ PR 检查（轻量）
-  # =========================
-  pr-check:
-    name: PR Check
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: ./go.mod
-          cache: true
-
-      - name: Go mod tidy check
-        run: go mod tidy && git diff --exit-code
-
-      - name: Build check
-        run: go build ./...
-
-      - name: Test (optional)
-        run: go test ./... || true
-
-  # =========================
-  # 🚀 正式构建 + 发布
-  # =========================
   build:
     name: Build & Release
     runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request'
-
     permissions:
       contents: write
-
     steps:
       - name: Checkout codebase
         uses: actions/checkout@v4
@@ -79,12 +29,12 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: ./go.mod
-          cache: true
 
       - name: Set variables
         run: |
           echo "TAG_NAME=$(date +%Y%m%d%H%M)" >> $GITHUB_ENV
           echo "RELEASE_NAME=$(date +%Y%m%d%H%M)" >> $GITHUB_ENV
+        shell: bash
 
       - name: Fetch lists from ripe.net
         run: |
@@ -98,8 +48,10 @@ jobs:
           curl -sSL https://api.fastly.com/public-ip-list | jq --raw-output '.addresses[],.ipv6_addresses[]' >> data/fastly
           curl -sSL https://ip-ranges.amazonaws.com/ip-ranges.json | jq --raw-output '.prefixes[],.ipv6_prefixes[] | select(.service == "CLOUDFRONT") | .ip_prefix,.ipv6_prefix' | grep "/" >> data/cloudfront
 
+     
       - name: Build geoip files
-        run: go run ./
+        run: |
+          go run ./
 
       - name: Verify mmdb files
         run: |
@@ -123,6 +75,7 @@ jobs:
             sha256sum ${name} > ./${name}.sha256sum
           done
 
+      
       - name: Move files to publish directory
         run: |
           mkdir -p publish
@@ -130,17 +83,17 @@ jobs:
           cp -fpPR ./output/text ./publish
           cp -fpPR ./output/srs ./publish
 
-      - name: Push assets to release branch
+      - name: Git push assets to "release" branch
         run: |
           cd publish || exit 1
           git init
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b release
           git add -A
           git commit -m "${{ env.RELEASE_NAME }}"
-          git remote add origin "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}"
-          git push -f origin release
+          git remote add geoip "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}"
+          git push -f -u geoip release
 
       - name: Purge jsdelivr CDN
         run: |
@@ -149,18 +102,18 @@ jobs:
             curl -i "https://purge.jsdelivr.net/gh/${{ github.repository }}@release/${file}"
           done
 
-      - name: Remove unnecessary files
+      - name: Remove some files to avoid publishing to GitHub release
         run: rm -rf ./publish/*.{gz,zip} ./publish/text ./publish/srs
 
-      - name: Upload files GitHub release
+      - name: Upload files to GitHub release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file_glob: true
           file: ./publish/*
           tag: ${{ env.TAG_NAME }}
-
-      - name: Cleanup old releases
+          
+      - name: Remove old Releases
         uses: dev-drprasad/delete-older-releases@v0.3.4
         with:
           keep_latest: 3
