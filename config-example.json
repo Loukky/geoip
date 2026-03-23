@@ -13,7 +13,7 @@
       "type": "v2rayGeoIPDat",
       "action": "add",
       "args": {
-        "uri": "https://raw.githubusercontent.com/Loyalsoldier/geoip/release/geoip.dat",
+        "uri": "https://raw.githubusercontent.com/Loukky/geoip/release/geoip.dat",
         "onlyIPType": "ipv6"
       }
     },
@@ -44,14 +44,14 @@
       "type": "maxmindMMDB",
       "action": "add",
       "args": {
-        "uri": "https://raw.githubusercontent.com/Loyalsoldier/geoip/release/Country.mmdb"
+        "uri": "https://raw.githubusercontent.com/Loukky/geoip/release/Country.mmdb"
       }
     },
     {
       "type": "maxmindMMDB",
       "action": "remove",
       "args": {
-        "uri": "https://raw.githubusercontent.com/Loyalsoldier/geoip/release/Country.mmdb",
+        "uri": "https://raw.githubusercontent.com/Loukky/geoip/release/Country.mmdb",
         "wantedList": ["jp"],
         "onlyIPType": "ipv6"
       }
@@ -61,7 +61,7 @@
       "action": "add",
       "args": {
         "name": "cn",
-        "uri": "https://raw.githubusercontent.com/Loyalsoldier/geoip/release/srs/cn.srs"
+        "uri": "https://raw.githubusercontent.com/Loukky/geoip/release/srs/cn.srs"
       }
     },
     {
