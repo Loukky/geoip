@@ -6,8 +6,8 @@ This project releases GeoIP files automatically every Thursday. It also provides
 
 ## 与官方版 GeoIP 的区别
 
-- 中国大陆 IPv4 地址数据融合了 [@mayaxcn/china-ip-list](https://github.com/mayaxcn/china-ip-list/blob/master/chn_ip.txt) 和 [@gaoyifan/china-operator-ip](https://github.com/gaoyifan/china-operator-ip/blob/ip-lists/china.txt)
-- 中国大陆 IPv6 地址数据融合了 [@mayaxcn/china-ip-list](https://github.com/mayaxcn/china-ip-list/blob/master/chn_ip_v6.txt) 和 [@gaoyifan/china-operator-ip](https://github.com/gaoyifan/china-operator-ip/blob/ip-lists/china6.txt)
+- 中国大陆 IPv4 地址数据融合了 [@mayaxcn/china-ip-list](https://github.com/mayaxcn/china-ip-list/blob/master/chnroute.txt) 和 [@gaoyifan/china-operator-ip](https://github.com/gaoyifan/china-operator-ip/blob/ip-lists/china.txt)
+- 中国大陆 IPv6 地址数据融合了 [@mayaxcn/china-ip-list](https://github.com/mayaxcn/china-ip-list/blob/master/chnroute_v6.txt) 和 [@gaoyifan/china-operator-ip](https://github.com/gaoyifan/china-operator-ip/blob/ip-lists/china6.txt)
 - 新增类别（方便有特殊需求的用户使用）：
   - `geoip:cloudflare`（`GEOIP,CLOUDFLARE`）
   - `geoip:cloudfront`（`GEOIP,CLOUDFRONT`）
