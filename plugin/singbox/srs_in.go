@@ -206,18 +206,15 @@ func (s *srsIn) generateEntries(name string, reader io.Reader, entries map[strin
 		entry = theEntry
 	}
 
-	plainRuleSet, err := srs.Read(reader, true)
+	// 读取旧版兼容规则
+	plainRuleSetCompat, err := srs.Read(reader, true)
 	if err != nil {
 		return err
 	}
 
-	plainRuleSetNew, ok := plainRuleSet.(*srs.PlainRuleSetCompat)
-	if ok {
-		plainRuleSetNew, err = plainRuleSetNew.Upgrade()
-		if err != nil {
-			return err
-		}
-	}
+	// 升级到新版本 PlainRuleSet
+	plainRuleSet := plainRuleSetCompat.Upgrade() // 返回 *option.PlainRuleSet
+
 	for _, rule := range plainRuleSet.Rules {
 		for _, cidrStr := range rule.DefaultOptions.IPCIDR {
 			switch s.Action {
@@ -234,6 +231,5 @@ func (s *srsIn) generateEntries(name string, reader io.Reader, entries map[strin
 	}
 
 	entries[entry.GetName()] = entry
-
 	return nil
 }
