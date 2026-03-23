@@ -93,10 +93,10 @@ jobs:
 
       - name: Append more CIDRs
         run: |
-          curl -sSL https://www.gstatic.com/ipranges/goog.json | jq -r '.prefixes[].ipv4Prefix,.prefixes[].ipv6Prefix | select(. != null)' >> data/google
-          curl -sSL https://www.gstatic.com/ipranges/cloud.json | jq -r '.prefixes[].ipv4Prefix,.prefixes[].ipv6Prefix | select(. != null)' >> data/google
-          curl -sSL https://api.fastly.com/public-ip-list | jq -r '.addresses[],.ipv6_addresses[]' >> data/fastly
-          curl -sSL https://ip-ranges.amazonaws.com/ip-ranges.json | jq -r '.prefixes[],.ipv6_prefixes[] | select(.service == "CLOUDFRONT") | .ip_prefix,.ipv6_prefix' | grep "/" >> data/cloudfront
+          curl -sSL https://www.gstatic.com/ipranges/goog.json | jq --raw-output '.prefixes[].ipv4Prefix,.prefixes[].ipv6Prefix | select(. != null)' >> data/google
+          curl -sSL https://www.gstatic.com/ipranges/cloud.json | jq --raw-output '.prefixes[].ipv4Prefix,.prefixes[].ipv6Prefix | select(. != null)' >> data/google
+          curl -sSL https://api.fastly.com/public-ip-list | jq --raw-output '.addresses[],.ipv6_addresses[]' >> data/fastly
+          curl -sSL https://ip-ranges.amazonaws.com/ip-ranges.json | jq --raw-output '.prefixes[],.ipv6_prefixes[] | select(.service == "CLOUDFRONT") | .ip_prefix,.ipv6_prefix' | grep "/" >> data/cloudfront
 
       - name: Build geoip files
         run: go run ./
@@ -104,22 +104,22 @@ jobs:
       - name: Verify mmdb files
         run: |
           cd ./output/maxmind || exit 1
-          go install github.com/maxmind/mmdbverify@latest
-          for name in *.mmdb; do
+          go install -v github.com/maxmind/mmdbverify@latest
+          for name in $(ls *.mmdb); do
             $(go env GOPATH)/bin/mmdbverify -file ${name}
           done
 
       - name: Generate sha256 checksum for dat files
         run: |
           cd ./output/dat || exit 1
-          for name in *.dat; do
+          for name in $(ls *.dat); do
             sha256sum ${name} > ./${name}.sha256sum
           done
 
       - name: Generate sha256 checksum for mmdb files
         run: |
           cd ./output/maxmind || exit 1
-          for name in *.mmdb; do
+          for name in $(ls *.mmdb); do
             sha256sum ${name} > ./${name}.sha256sum
           done
 
@@ -145,14 +145,14 @@ jobs:
       - name: Purge jsdelivr CDN
         run: |
           cd publish || exit 1
-          for file in *; do
-            curl -s "https://purge.jsdelivr.net/gh/${{ github.repository }}@release/${file}"
+          for file in $(ls); do
+            curl -i "https://purge.jsdelivr.net/gh/${{ github.repository }}@release/${file}"
           done
 
       - name: Remove unnecessary files
         run: rm -rf ./publish/*.{gz,zip} ./publish/text ./publish/srs
 
-      - name: Upload to GitHub release
+      - name: Upload files GitHub release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
