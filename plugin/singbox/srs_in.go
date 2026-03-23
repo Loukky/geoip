@@ -211,6 +211,13 @@ func (s *srsIn) generateEntries(name string, reader io.Reader, entries map[strin
 		return err
 	}
 
+	plainRuleSetNew, ok := plainRuleSet.(*srs.PlainRuleSetCompat)
+	if ok {
+		plainRuleSetNew, err = plainRuleSetNew.Upgrade()
+		if err != nil {
+			return err
+		}
+	}
 	for _, rule := range plainRuleSet.Rules {
 		for _, cidrStr := range rule.DefaultOptions.IPCIDR {
 			switch s.Action {

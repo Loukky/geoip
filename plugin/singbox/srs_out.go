@@ -172,7 +172,8 @@ func (s *srsOut) writeFile(filename string, ruleset *option.PlainRuleSet) error 
 	}
 	defer f.Close()
 
-	err = srs.Write(f, *ruleset)
+	// ✅ 新版本 srs.Write 需要第三个参数 version
+	err = srs.Write(f, *ruleset, 0)
 	if err != nil {
 		return err
 	}
