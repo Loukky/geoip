@@ -12,6 +12,15 @@ on:
       - "LICENSE"
       - "README.md"
       - ".github/dependabot.yml"
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - ".gitignore"
+      - "config-example.json"
+      - "LICENSE"
+      - "README.md"
+      - ".github/dependabot.yml"
 jobs:
   build:
     name: Build
