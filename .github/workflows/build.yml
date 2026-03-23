@@ -12,6 +12,7 @@ on:
       - "LICENSE"
       - "README.md"
       - ".github/dependabot.yml"
+      - ".github/workflows/pr-check.yml"
 
 jobs:
   build:
