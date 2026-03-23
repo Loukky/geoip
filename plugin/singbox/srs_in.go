@@ -213,8 +213,12 @@ func (s *srsIn) generateEntries(name string, reader io.Reader, entries map[strin
 	}
 
 	// 升级到新版本 PlainRuleSet
-	plainRuleSet := plainRuleSetCompat.Upgrade() // 返回 *option.PlainRuleSet
+	plainRuleSet, err := plainRuleSetCompat.Upgrade() // ✅ 新版本返回两个值
+	if err != nil {
+		return err
+	}
 
+	// 遍历规则
 	for _, rule := range plainRuleSet.Rules {
 		for _, cidrStr := range rule.DefaultOptions.IPCIDR {
 			switch s.Action {
