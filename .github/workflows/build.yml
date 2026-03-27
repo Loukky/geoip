@@ -87,15 +87,29 @@ jobs:
       - name: Git push assets to "release" branch
         run: |
           cd publish || exit 1
+
           git init
-          git remote add geoip "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}"
-          git fetch geoip release || true
-          git checkout -b release geoip/release || git checkout -b release
-          git config --local user.name "github-actions[bot]"
-          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git remote add origin "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}"
+
+          # 判断远程 release 是否存在
+          if git ls-remote --exit-code --heads origin release; then
+            git fetch origin release
+            git checkout -b release origin/release
+          else
+            git checkout -b release
+          fi
+
+          # 覆盖文件内容（但不是覆盖历史）
+          rm -rf *
+          cp -r ../publish/* .
+
           git add -A
-          git commit -m "${{ env.RELEASE_NAME }}"
-          git push -f -u geoip release
+          git commit -m "${{ env.RELEASE_NAME }}" || echo "No changes"
+
+          git push origin release
 
       - name: Purge jsdelivr CDN
         run: |
