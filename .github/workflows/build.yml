@@ -14,6 +14,10 @@ on:
       - ".github/dependabot.yml"
       - ".github/workflows/pr-check.yml"
 
+concurrency:
+  group: geoip-release
+  cancel-in-progress: false
+
 jobs:
   build:
     name: Build & Release
@@ -98,7 +102,7 @@ jobs:
           git rm -rf *
           cp -r ../publish/* .
           git add -A
-          git commit -m "${{ env.RELEASE_NAME }}"
+          git commit -m "${{ env.RELEASE_NAME }}" || echo "No changes to commit"
           git push geoip release
 
       - name: Purge jsdelivr CDN
