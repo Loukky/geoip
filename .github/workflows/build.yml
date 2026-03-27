@@ -14,6 +14,10 @@ on:
       - ".github/dependabot.yml"
       - ".github/workflows/pr-check.yml"
 
+concurrency:
+  group: geoip-release
+  cancel-in-progress: false
+
 jobs:
   build:
     name: Build & Release
@@ -86,16 +90,20 @@ jobs:
 
       - name: Git push assets to "release" branch
         run: |
-          cd publish || exit 1
+          mkdir -p release_repo
+          cd release_repo || exit 1
           git init
           git remote add geoip "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}"
           git fetch geoip release || true
           git checkout -b release geoip/release || git checkout -b release
           git config --local user.name "github-actions[bot]"
           git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # 覆盖文件内容
+          git rm -rf *
+          cp -r ../publish/* .
           git add -A
-          git commit -m "${{ env.RELEASE_NAME }}"
-          git push -f -u geoip release
+          git commit -m "${{ env.RELEASE_NAME }}" || echo "No changes to commit"
+          git push geoip release
 
       - name: Purge jsdelivr CDN
         run: |
