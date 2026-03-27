@@ -5,7 +5,7 @@ go 1.25.5
 require (
 	github.com/maxmind/mmdbwriter v1.2.0
 	github.com/oschwald/maxminddb-golang v1.13.1
-	github.com/sagernet/sing-box v1.13.3
+	github.com/sagernet/sing-box v1.13.4
 	github.com/v2fly/v2ray-core/v5 v5.48.0
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba
 	google.golang.org/protobuf v1.36.11
@@ -21,7 +21,7 @@ require (
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/pires/go-proxyproto v0.11.0 // indirect
 	github.com/quic-go/quic-go v0.59.0 // indirect
-	github.com/sagernet/sing v0.8.2 // indirect
+	github.com/sagernet/sing v0.8.3-0.20260315153529-ed51f65fbfde // indirect
 	go.starlark.net v0.0.0-20230612165344-9532f5667272 // indirect
 	golang.org/x/crypto v0.49.0 // indirect
 	golang.org/x/mod v0.33.0 // indirect
