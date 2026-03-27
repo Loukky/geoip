@@ -99,7 +99,7 @@ jobs:
           git config --local user.name "github-actions[bot]"
           git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
           # 覆盖文件内容
-          git rm -rf *
+          rm -rf *
           cp -r ../publish/* .
           git add -A
           git commit -m "${{ env.RELEASE_NAME }}" || echo "No changes to commit"
