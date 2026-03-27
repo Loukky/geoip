@@ -99,9 +99,9 @@ jobs:
           git config --local user.name "github-actions[bot]"
           git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
           # 覆盖文件内容
+          diff -r ../publish . || true
           rm -rf *
           cp -r ../publish/* .
-          diff -r ../publish . || true
           git add -A
           git commit -m "${{ env.RELEASE_NAME }}" || echo "No changes to commit"
           git push geoip release
