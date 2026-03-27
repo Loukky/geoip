@@ -110,7 +110,8 @@
           "google",
           "netflix",
           "telegram",
-          "twitter"
+          "twitter",
+          "gcore"
         ]
       }
     },
@@ -137,7 +138,8 @@
           "google",
           "netflix",
           "telegram",
-          "twitter"
+          "twitter",
+          "gcore"
         ]
       }
     },
@@ -162,7 +164,8 @@
           "google",
           "netflix",
           "telegram",
-          "twitter"
+          "twitter",
+          "gcore"
         ]
       }
     },
