@@ -1,8 +1,8 @@
 # 简介
 
-本项目每隔四小时自动生成 GeoIP 文件，同时提供命令行界面（CLI）供用户自行定制 GeoIP 文件，包括但不限于 V2Ray dat 格式路由规则文件 `geoip.dat`、MaxMind mmdb 格式文件 `Country.mmdb` 和 sing-box SRS 格式文件。
+本项目每8小时自动生成 GeoIP 文件，同时提供命令行界面（CLI）供用户自行定制 GeoIP 文件，包括但不限于 V2Ray dat 格式路由规则文件 `geoip.dat`、MaxMind mmdb 格式文件 `Country.mmdb` 和 sing-box SRS 格式文件。
 
-This project releases GeoIP files automatically every 4 hours. It also provides a command line interface(CLI) for users to customize their own GeoIP files, included but not limited to V2Ray dat format file `geoip.dat`, MaxMind mmdb format file `Country.mmdb` and sing-box SRS format files.
+This project releases GeoIP files automatically every 8 hours. It also provides a command line interface(CLI) for users to customize their own GeoIP files, included but not limited to V2Ray dat format file `geoip.dat`, MaxMind mmdb format file `Country.mmdb` and sing-box SRS format files.
 
 ## 与官方版 GeoIP 的区别
 
