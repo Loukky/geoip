@@ -17,6 +17,7 @@ This project releases GeoIP files automatically every 4 hours. It also provides 
   - `geoip:netflix`（`GEOIP,NETFLIX`）
   - `geoip:telegram`（`GEOIP,TELEGRAM`）
   - `geoip:twitter`（`GEOIP,TWITTER`）
+  - `geoip:gcore`（`GEOIP,GCORE`）
 
 ## 参考配置
 
