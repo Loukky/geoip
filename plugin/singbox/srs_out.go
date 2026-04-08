@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/Loukky/geoip/lib"
@@ -15,8 +16,8 @@ import (
 )
 
 const (
-	typeSRSOut = "singboxSRS"
-	descSRSOut = "Convert data to sing-box SRS format"
+	TypeSRSOut = "singboxSRS"
+	DescSRSOut = "Convert data to sing-box SRS format"
 )
 
 var (
@@ -24,11 +25,11 @@ var (
 )
 
 func init() {
-	lib.RegisterOutputConfigCreator(typeSRSOut, func(action lib.Action, data json.RawMessage) (lib.OutputConverter, error) {
+	lib.RegisterOutputConfigCreator(TypeSRSOut, func(action lib.Action, data json.RawMessage) (lib.OutputConverter, error) {
 		return newSRSOut(action, data)
 	})
-	lib.RegisterOutputConverter(typeSRSOut, &srsOut{
-		Description: descSRSOut,
+	lib.RegisterOutputConverter(TypeSRSOut, &SRSOut{
+		Description: DescSRSOut,
 	})
 }
 
@@ -36,6 +37,7 @@ func newSRSOut(action lib.Action, data json.RawMessage) (lib.OutputConverter, er
 	var tmp struct {
 		OutputDir  string     `json:"outputDir"`
 		Want       []string   `json:"wantedList"`
+		Exclude    []string   `json:"excludedList"`
 		OnlyIPType lib.IPType `json:"onlyIPType"`
 	}
 
@@ -49,73 +51,93 @@ func newSRSOut(action lib.Action, data json.RawMessage) (lib.OutputConverter, er
 		tmp.OutputDir = defaultOutputDir
 	}
 
-	return &srsOut{
-		Type:        typeSRSOut,
+	return &SRSOut{
+		Type:        TypeSRSOut,
 		Action:      action,
-		Description: descSRSOut,
+		Description: DescSRSOut,
 		OutputDir:   tmp.OutputDir,
 		Want:        tmp.Want,
+		Exclude:     tmp.Exclude,
 		OnlyIPType:  tmp.OnlyIPType,
 	}, nil
 }
 
-type srsOut struct {
+type SRSOut struct {
 	Type        string
 	Action      lib.Action
 	Description string
 	OutputDir   string
 	Want        []string
+	Exclude     []string
 	OnlyIPType  lib.IPType
 }
 
-func (s *srsOut) GetType() string {
+func (s *SRSOut) GetType() string {
 	return s.Type
 }
 
-func (s *srsOut) GetAction() lib.Action {
+func (s *SRSOut) GetAction() lib.Action {
 	return s.Action
 }
 
-func (s *srsOut) GetDescription() string {
+func (s *SRSOut) GetDescription() string {
 	return s.Description
 }
 
-func (s *srsOut) Output(container lib.Container) error {
-	// Filter want list
-	wantList := make(map[string]bool)
-	for _, want := range s.Want {
-		if want = strings.ToUpper(strings.TrimSpace(want)); want != "" {
-			wantList[want] = true
-		}
-	}
-
-	switch len(wantList) {
-	case 0:
-		for entry := range container.Loop() {
-			if err := s.run(entry); err != nil {
-				return err
-			}
+func (s *SRSOut) Output(container lib.Container) error {
+	for _, name := range s.filterAndSortList(container) {
+		entry, found := container.GetEntry(name)
+		if !found {
+			log.Printf("❌ entry %s not found\n", name)
+			continue
 		}
 
-	default:
-		for name := range wantList {
-			entry, found := container.GetEntry(name)
-			if !found {
-				log.Printf("❌ entry %s not found", name)
-				continue
-			}
-
-			if err := s.run(entry); err != nil {
-				return err
-			}
+		if err := s.generate(entry); err != nil {
+			return err
 		}
 	}
 
 	return nil
 }
 
-func (s *srsOut) run(entry *lib.Entry) error {
-	ruleset, err := s.generateRuleSet(entry)
+func (s *SRSOut) filterAndSortList(container lib.Container) []string {
+	excludeMap := make(map[string]bool)
+	for _, exclude := range s.Exclude {
+		if exclude = strings.ToUpper(strings.TrimSpace(exclude)); exclude != "" {
+			excludeMap[exclude] = true
+		}
+	}
+
+	wantList := make([]string, 0, len(s.Want))
+	for _, want := range s.Want {
+		if want = strings.ToUpper(strings.TrimSpace(want)); want != "" && !excludeMap[want] {
+			wantList = append(wantList, want)
+		}
+	}
+
+	if len(wantList) > 0 {
+		// Sort the list
+		slices.Sort(wantList)
+		return wantList
+	}
+
+	list := make([]string, 0, 300)
+	for entry := range container.Loop() {
+		name := entry.GetName()
+		if excludeMap[name] {
+			continue
+		}
+		list = append(list, name)
+	}
+
+	// Sort the list
+	slices.Sort(list)
+
+	return list
+}
+
+func (s *SRSOut) generate(entry *lib.Entry) error {
+	ruleset, err := s.marshalRuleSet(entry)
 	if err != nil {
 		return err
 	}
@@ -128,17 +150,8 @@ func (s *srsOut) run(entry *lib.Entry) error {
 	return nil
 }
 
-func (s *srsOut) generateRuleSet(entry *lib.Entry) (*option.PlainRuleSet, error) {
-	var entryCidr []string
-	var err error
-	switch s.OnlyIPType {
-	case lib.IPv4:
-		entryCidr, err = entry.MarshalText(lib.IgnoreIPv6)
-	case lib.IPv6:
-		entryCidr, err = entry.MarshalText(lib.IgnoreIPv4)
-	default:
-		entryCidr, err = entry.MarshalText()
-	}
+func (s *SRSOut) marshalRuleSet(entry *lib.Entry) (*option.PlainRuleSet, error) {
+	entryCidr, err := entry.MarshalText(lib.GetIgnoreIPType(s.OnlyIPType))
 	if err != nil {
 		return nil, err
 	}
@@ -158,10 +171,10 @@ func (s *srsOut) generateRuleSet(entry *lib.Entry) (*option.PlainRuleSet, error)
 		return &plainRuleSet, nil
 	}
 
-	return nil, fmt.Errorf("entry %s has no CIDR", entry.GetName())
+	return nil, fmt.Errorf("❌ [type %s | action %s] entry %s has no CIDR", s.Type, s.Action, entry.GetName())
 }
 
-func (s *srsOut) writeFile(filename string, ruleset *option.PlainRuleSet) error {
+func (s *SRSOut) writeFile(filename string, ruleset *option.PlainRuleSet) error {
 	if err := os.MkdirAll(s.OutputDir, 0755); err != nil {
 		return err
 	}
@@ -172,8 +185,7 @@ func (s *srsOut) writeFile(filename string, ruleset *option.PlainRuleSet) error 
 	}
 	defer f.Close()
 
-	// ✅ 新版本 srs.Write 需要第三个参数 version
-	err = srs.Write(f, *ruleset, 0)
+	err = srs.Write(f, *ruleset, constant.RuleSetVersion1)
 	if err != nil {
 		return err
 	}
