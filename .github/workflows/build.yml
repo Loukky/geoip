@@ -88,7 +88,7 @@ jobs:
 
       - name: Generate sha256 checksum for mmdb files
         run: |
-          cd ./output/maxmind || exit 1
+          cd ./output || exit 1
           for name in $(ls *.mmdb); do
             sha256sum ${name} > ./${name}.sha256sum
           done
@@ -125,7 +125,12 @@ jobs:
           done
 
       - name: Remove some files to avoid publishing to GitHub release
-        run: rm -rf ./publish/*.{gz,zip} ./publish/text ./publish/srs
+        run: |
+          rm -rf ./publish/*.{gz,zip}
+          rm -rf ./publish/GeoLite2-*.csv
+          rm -rf ./publish/GeoLite2-*.mmdb
+          rm -rf ./publish/GeoLite2-*.sha256sum
+          rm -rf ./publish/{clash,dat,mrs,nginx,srs,surge,text}
 
       - name: Upload files to GitHub release
         uses: svenstaro/upload-release-action@v2
