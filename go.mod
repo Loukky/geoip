@@ -3,10 +3,9 @@ module github.com/Loukky/geoip
 go 1.25
 
 require (
-	github.com/klauspost/compress v1.18.4
+	github.com/klauspost/compress v1.18.5
 	github.com/maxmind/mmdbwriter v1.2.0
 	github.com/oschwald/geoip2-golang/v2 v2.1.0
-	github.com/oschwald/maxminddb-golang v1.13.1
 	github.com/oschwald/maxminddb-golang/v2 v2.1.1
 	github.com/sagernet/sing-box v1.13.1
 	github.com/spf13/cobra v1.10.2
