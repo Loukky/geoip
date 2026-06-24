@@ -26,12 +26,12 @@ jobs:
       contents: write
     steps:
       - name: Checkout codebase
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.0
         with:
           fetch-depth: 0
 
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v6.5.0
         with:
           go-version-file: ./go.mod
 
@@ -133,7 +133,7 @@ jobs:
           rm -rf ./publish/{clash,dat,mrs,nginx,srs,surge,text}
 
       - name: Upload files to GitHub release
-        uses: svenstaro/upload-release-action@v2
+        uses: svenstaro/upload-release-action@v2.11.5
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file_glob: true
