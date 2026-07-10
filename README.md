@@ -93,7 +93,7 @@ rules:
 
 > 适用于 [V2Ray](https://github.com/v2fly/v2ray-core)、[Xray-core](https://github.com/XTLS/Xray-core) 和 [Trojan-Go](https://github.com/p4gefau1t/trojan-go)。
 
-- **geoip.dat** （注：只包含 `geoip:cn`）：
+- **geoip.dat** ：
   - [https://raw.githubusercontent.com/Loukky/geoip/release/geoip.dat](https://raw.githubusercontent.com/Loukky/geoip/release/geoip.dat)
   - [https://cdn.jsdelivr.net/gh/Loukky/geoip@release/geoip.dat](https://cdn.jsdelivr.net/gh/Loukky/geoip@release/geoip.dat)
 - **geoip.dat.sha256sum**：
@@ -128,7 +128,7 @@ rules:
 
 > 适用于 [Clash](https://github.com/Dreamacro/clash) 和 [Leaf](https://github.com/eycorsican/leaf)。
 
-- **Country.mmdb** (注：只包含 `GEOIP,CN` )：
+- **Country.mmdb** ：
   - [https://raw.githubusercontent.com/Loukky/geoip/release/Country.mmdb](https://raw.githubusercontent.com/Loukky/geoip/release/Country.mmdb)
   - [https://cdn.jsdelivr.net/gh/Loukky/geoip@release/Country.mmdb](https://cdn.jsdelivr.net/gh/Loukky/geoip@release/Country.mmdb)
 - **Country.mmdb.sha256sum**：
