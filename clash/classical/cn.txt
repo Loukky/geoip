@@ -7959,6 +7959,7 @@ payload:
   - IP-CIDR6,2a14:67c3:30::/44
   - IP-CIDR6,2a14:67c3:c0::/48
   - IP-CIDR6,2a14:67c3:190::/47
+  - IP-CIDR6,2a14:67c3:360::/48
   - IP-CIDR6,2a14:67c3:caf0::/45
   - IP-CIDR6,2a14:67c3:caf8::/46
   - IP-CIDR6,2a14:67c3:cafc::/47
