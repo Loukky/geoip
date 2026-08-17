@@ -2,7 +2,7 @@ name: Build geoip files
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 16 * * *"
+    - cron: "0 16 * * 1" # 每周一 16:00 UTC (北京时间 00:00)
   push:
     branches:
       - main
